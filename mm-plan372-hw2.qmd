@@ -1,0 +1,6 @@
+---
+title: "mm-plan372-hw2"
+author: "Mary Mungai"
+format: html
+editor: visual
+---
