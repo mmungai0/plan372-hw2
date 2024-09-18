@@ -4,3 +4,28 @@ author: "Mary Mungai"
 format: html
 editor: visual
 ---
+Collect packages 
+```{r}
+library(tidyverse) #i always have to click 'tidyverse' in packages to get it
+library(lubridate)
+```
+Read CSV files 
+```{r}
+install.packages("here")
+data=read.csv(here::here("restaurant_inspections.csv")) #here:here requires that the csv file is actually in your current working directly (plan372-hw2)
+
+```
+#1 Visualize the overall distribution of inspection scores with a histogram
+
+Check for missing data
+```{r}
+data |>
+  summarize(na_count=sum(is.na(count)))
+#No missing data
+
+```
+
+```{r}
+ggplot(data, aes(x=SCORE)) + geom_histogram(color='white', fill='pink')
+
+```
