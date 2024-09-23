@@ -63,17 +63,42 @@ data_ro = data |>
 ggplot(data_ro, aes(x=year_opened, y=mean_score)) + geom_line()
 #NOTE: One row contains missing values 
 ```
-There doesn't seem to be much of a trend between older and newer restaurants, only sharp drops in the mean scores of some restaurants (i.e. those that opened between 1990 and 1995) and peaks in others (i.e. those who opened after 2020)
+There doesn't seem to be much of a trend between older and newer restaurants, only sharp drops in the mean scores of some restaurants (i.e. those that opened between 1990 and 1995) and peaks in others (i.e. those who opened after 2020).
 
+
+#3. Wake County is the most populous county in North Carolina, and there are many cities in it. Do the inspection scores vary by city? 
+
+Note that the city column contains some differently spelled city names; make sure to clean those up so that there is only one estimated value per city. 
+
+The recode function that we used for creating a weekend/weekday variable in the SFpark exercise will be useful here, and you may also be interested in the str_to_upper function.
+
+Step 1: find and recode unique city names 
+```{r}
+unique(data$CITY) #ran this again after recoding 
+
+data$CITY = recode(data$CITY, "Raleigh"="RALEIGH", "Zebulon"="ZEBULON", "Wake Forest"="WAKE FOREST", "NORTH CAROLINA" = "UNKNOWN", "Fuquay-Varina" = "FUQUAY VARINA", "Fuquay Varina" = "FUQUAY VARINA", "FUQUAY-VARINA" = "FUQUAY VARINA", "Garner" = "GARNER", "RTP" = "RESEARCH TRIANGLE PARK", "Cary" = "CARY", "Apex" = "APEX", "Morrisville" = "MORRISVILLE", "Holly Springs" = "HOLLY SPRINGS", "HOLLY SPRING" = "HOLLY SPRINGS")
+```
+Step 2: Group data by city 
 ```{r}
 
+data_city = data |>
+  group_by(CITY) |>
+  summarize(mean_score = mean(SCORE, na.rm=T)) |>
+  ungroup()
+data_city
+```
+It varies a little by city but not much. It also varied by about the same amount by year opened too, with variation being between 94 and 100 for the score.
 
+How do I graph this?
+
+```{r}
 ```
 
 ```{r}
 
 
 ```
+
 
 ```{r}
 
