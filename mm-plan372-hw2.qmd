@@ -4,20 +4,29 @@ author: "Mary Mungai"
 format: html
 editor: visual
 ---
-Collect packages 
+
+Collect packages
+
 ```{r}
 library(tidyverse) #i always have to click 'tidyverse' in packages to get it
 library(lubridate)
+library(ggplot2)
+library(ggthemes)
+
 ```
-Read CSV files 
+
+Read CSV files
+
 ```{r}
 install.packages("here")
 data=read.csv(here::here("restaurant_inspections.csv")) #here:here requires that the csv file is actually in your current working directly (plan372-hw2)
 
 ```
+
 #1 Visualize the overall distribution of inspection scores with a histogram
 
 Check for missing data
+
 ```{r}
 data |>
   summarize(na_count=sum(is.na(count)))
@@ -27,5 +36,46 @@ data |>
 
 ```{r}
 ggplot(data, aes(x=SCORE)) + geom_histogram(color='white', fill='pink')
+
+```
+
+#2 Some restaurants have been in business much longer than others. Is there any trend in terms of how highly older vs. newer restaurants score on their inspections?
+
+What is "old" v "new"? Making the dates mdy_hm actual dates and not characters
+```{r}
+data$open_date = ymd_hms(data$RESTAURANTOPENDATE) 
+#I have to individually run library(lubridate) again in order for this to run
+```
+
+Check for NA vars (got a failed to parse error before)
+```{r}
+which(is.na(data$open_date)) #stack overflow assist; many NAs
+```
+
+Multiple restaurants can open within the same year so I grouped them together below to make the graph look nicer, then found the mean scores of restaurants which opened within the same year. 
+```{r}
+data_ro = data |>
+  mutate(year_opened = year(open_date)) |> #works like hour lubridate function
+  group_by(year_opened)|>
+  summarize(mean_score = mean(SCORE, na.rm=T)) |>
+  ungroup()
+
+ggplot(data_ro, aes(x=year_opened, y=mean_score)) + geom_line()
+#NOTE: One row contains missing values 
+```
+There doesn't seem to be much of a trend between older and newer restaurants, only sharp drops in the mean scores of some restaurants (i.e. those that opened between 1990 and 1995) and peaks in others (i.e. those who opened after 2020)
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
 
 ```
