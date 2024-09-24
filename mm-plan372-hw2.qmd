@@ -89,9 +89,48 @@ data_city
 ```
 It varies a little by city but not much. It also varied by about the same amount by year opened too, with variation being between 94 and 100 for the score.
 
-How do I graph this?
+#4. Wake County employs a whole team of inspectors. It is possible that some inspectors may be more thorough than others. Do inspection scores vary by inspector?
 
 ```{r}
+unique(data$INSPECTOR, data$HSISID)
+
+data_inspect = data |>
+  group_by(INSPECTOR) |>
+  summarize(mean_score = mean(SCORE)) |>
+  ungroup()
+data_inspect
+```
+It varies but not by much. Once again the variance is between a mean score of 94 and 99. 
+
+#5. It is possible that some extreme results from the previous questions are due to small sample sizes in a particular city, for a particular inspector, or in a particular time period. Look at the sample sizes in each of your groups. Do you think this is an explanation for the results you came to above? 
+
+I don't know if my results can be considered extreme, but my sample sizes for each of the groups are small. When I grouped by the year the restaurant opened, there were 34 observations, which became 39 when I grouped by inspector, but became just 20 when I grouped by city. I'm not sure the sample size alone explains any changes, or lack thereof, of my results, which happened to be pretty constant from question to question.
+
+!question -> why are my results not changing
+
+#The data file contains records for many types of food-service facility (e.g. restaurants, food trucks, etc.). Are the scores for restaurants higher than other types of facility?
+
+Creating
+```{r}
+data_city_inspect = data |>
+  group_by(CITY, INSPECTOR) |>
+  summarise(mean_score = mean(SCORE, na.rm=T)) |>
+  ungroup()
+
+ggplot(data_city_inspect, aes(x=INSPECTOR, y=mean_score)) + geom_bar(position="dodge", stat="identity")
+
+```
+
+
+```{r}
+ggplot(data_inspect, aes(x=CITY))
+
+
+```
+
+```{r}
+
+
 ```
 
 ```{r}
