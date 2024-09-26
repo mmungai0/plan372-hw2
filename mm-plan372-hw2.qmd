@@ -17,9 +17,8 @@ library(tidyverse) #i always have to click 'tidyverse' in packages to get it
 Read CSV files
 
 ```{r}
-install.packages("here")
-data=read.csv(here::here("restaurant_inspections.csv")) #here:here requires that the csv file is actually in your current working directly (plan372-hw2)
-
+#install.packages("here") #maybe not necessary because it prevents rendering
+data=read.csv("restaurant_inspections.csv") 
 ```
 
 #1 Visualize the overall distribution of inspection scores with a histogram
@@ -32,27 +31,34 @@ data |>
 #No missing data
 
 ```
+
 Visualizing the data using ggplot
+
 ```{r}
 ggplot(data, aes(x=SCORE)) + geom_histogram(color='white', fill='pink')
 
 ```
-There is a slight right skew but most data is concentrated between about 80 and 100. 
+
+There is a slight right skew but most data is concentrated between about 80 and 100.
 
 #2 Some restaurants have been in business much longer than others. Is there any trend in terms of how highly older vs. newer restaurants score on their inspections?
 
 What is "old" v "new"? Making the dates mdy_hm actual dates and not characters
+
 ```{r}
 data$open_date = ymd_hms(data$RESTAURANTOPENDATE) 
 #I have to individually run library(lubridate) again in order for this to run
 ```
 
 Check for NA vars (got a failed to parse error before)
+
 ```{r}
 which(is.na(data$open_date)) #stack overflow assist; many NAs
 ```
+There are many NA values, at least 289. This may skew the results. 
 
-Multiple restaurants can open within the same year so I grouped them together below to make the graph look nicer, then found the mean scores of restaurants which opened within the same year. 
+Multiple restaurants can open within the same year so I grouped them together below to make the graph look nicer, then found the mean scores of restaurants which opened within the same year.
+
 ```{r}
 data_ro = data |>
   mutate(year_opened = year(open_date)) |> #works like hour lubridate function
@@ -63,22 +69,31 @@ data_ro = data |>
 ggplot(data_ro, aes(x=year_opened, y=mean_score)) + geom_line()
 #NOTE: One row contains missing values 
 ```
+
 There doesn't seem to be much of a trend between older and newer restaurants, only sharp drops in the mean scores of some restaurants (i.e. those that opened between 1990 and 1995) and peaks in others (i.e. those who opened after 2020).
 
+#3. Wake County is the most populous county in North Carolina, and there are many cities in it. Do the inspection scores vary by city?
 
-#3. Wake County is the most populous county in North Carolina, and there are many cities in it. Do the inspection scores vary by city? 
-
-#Note that the city column contains some differently spelled city names; make sure to clean those up so that there is only one estimated value per city. 
+#Note that the city column contains some differently spelled city names; make sure to clean those up so that there is only one estimated value per city.
 
 #The recode function that we used for creating a weekend/weekday variable in the SFpark exercise will be useful here, and you may also be interested in the str_to_upper function.
 
-Step 1: find and recode unique city names 
+Step 1: find and recode unique city names
+
 ```{r}
 unique(data$CITY) #ran this again after recoding 
 
 data$CITY = recode(data$CITY, "Raleigh"="RALEIGH", "Zebulon"="ZEBULON", "Wake Forest"="WAKE FOREST", "NORTH CAROLINA" = "UNKNOWN", "Fuquay-Varina" = "FUQUAY VARINA", "Fuquay Varina" = "FUQUAY VARINA", "FUQUAY-VARINA" = "FUQUAY VARINA", "Garner" = "GARNER", "RTP" = "RESEARCH TRIANGLE PARK", "Cary" = "CARY", "Apex" = "APEX", "Morrisville" = "MORRISVILLE", "Holly Springs" = "HOLLY SPRINGS", "HOLLY SPRING" = "HOLLY SPRINGS")
 ```
-Step 2: Group data by city and summarize to find the average inspection scores
+
+Step 2: Check for NA values
+```{r}
+which(is.na(data$CITY)) #stack overflow assist to returning the number of NA values; many NAs
+```
+Seemingly a lot of NA values in "CITY" -> probably the ones in the NA column featured below.
+
+Step 3: Group data by city and summarize to find the average inspection scores
+
 ```{r}
 
 data_city = data |>
@@ -87,9 +102,15 @@ data_city = data |>
   ungroup()
 data_city
 ```
+
 It varies a little by city but not much. It also varied by about the same amount by year opened too, with variation being between 94 and 100 for the score.
 
 #4. Wake County employs a whole team of inspectors. It is possible that some inspectors may be more thorough than others. Do inspection scores vary by inspector?
+
+Find NA values
+```{r}
+which(is.na(data$INSPECTOR)) #stack overflow assist to returning the number of NA values; 0 NAs in inspector column
+```
 
 Create a table with the mean inspection score per restaurant
 ```{r}
@@ -97,15 +118,17 @@ unique(data$INSPECTOR) #just to get a sense of how many inspectors there are
 
 data_inspect = data |>
   group_by(INSPECTOR) |>
-  summarize(mean_score = mean(SCORE)) |>
+  summarize(mean_score = mean(SCORE, na.rm=T)) |>
   ungroup()
 data_inspect
 ```
-It varies but not by much. Once again the variance is between a mean score of 94 and 99. 
 
-#5. It is possible that some extreme results from the previous questions are due to small sample sizes in a particular city, for a particular inspector, or in a particular time period. Look at the sample sizes in each of your groups. Do you think this is an explanation for the results you came to above? 
+It varies but not by much. Once again the variance is between a mean score of 94 and 99.
 
-Create a table combining the sample sizes for distinct citites, inspectors, and time periods (year restaurants opened) 
+#5. It is possible that some extreme results from the previous questions are due to small sample sizes in a particular city, for a particular inspector, or in a particular time period. Look at the sample sizes in each of your groups. Do you think this is an explanation for the results you came to above?
+
+Create a table combining the sample sizes for distinct citites, inspectors, and time periods (year restaurants opened)
+
 ```{r}
 data_yo = data |>
   mutate(name_yo = year(open_date)) |>
@@ -130,7 +153,8 @@ I don't know if my results can be considered extreme, but my sample sizes for ea
 
 #6. The data file contains records for many types of food-service facility (e.g. restaurants, food trucks, etc.). Are the scores for restaurants higher than other types of facility?
 
-Check for NAs within the facility type groups 
+Check for NAs within the facility type groups
+
 ```{r}
 
 data |> 
@@ -138,9 +162,11 @@ data |>
   summarize(na_count=sum(is.na(count)))
 
 ```
+
 None besides the NA column.
 
 Create a new table with the mean scores of of food service facilities
+
 ```{r}
 data_facility = data |>
   group_by(FACILITYTYPE) |>
@@ -150,16 +176,19 @@ data_facility
 ```
 
 Make a bar graph of results (to help visualize)
+
 ```{r}
 
 ggplot(data_facility, aes(x=FACILITYTYPE, y=mean_score)) + geom_col() + theme(axis.text.x = element_text(angle = 90)) #help from stack exchange 
 
 ```
-The scores for restaurants are not higher than for other facilities. For example, the mean scores of push carts and public school lunchrooms are higher. In fact, "restaurant" has the lowest average score than all other facilities. 
 
-#7. Since restaurants are where the general public is most likely to interact with the food-service system, Wake County Public Health is particularly interested in sanitation in restaurants. Repeat the analyses above (1-5) for restaurants specifically. 
+The scores for restaurants are not higher than for other facilities. For example, the mean scores of push carts and public school lunchrooms are higher. In fact, "restaurant" has the lowest average score than all other facilities.
 
-#Step 1 -> histogram
+#7. Since restaurants are where the general public is most likely to interact with the food-service system, Wake County Public Health is particularly interested in sanitation in restaurants. Repeat the analyses above (1-5) for restaurants specifically.
+
+#Step 1 -\> histogram
+
 ```{r}
 
 data_restaurant = data |>
@@ -169,8 +198,15 @@ ggplot(data_restaurant, aes(x=SCORE)) + geom_histogram(color='white', fill='pink
 
 ```
 
-Histogram looks similar to the histogram for all facility types.
-#Step 2 -> old vs new restaurants 
+Histogram looks similar to the histogram for all facility types. 
+
+#Step 2 -> old vs new restaurants
+
+Check for NA values
+```{r}
+which(is.na(data_restaurant$RESTAURANTOPENDATE)) #stack overflow assist to returning the number of NA values; 0 NAs
+```
+
 ```{r}
 
 data_restaurant |>
@@ -184,9 +220,18 @@ data_restaurant |>
 
 
 ```
+
 While the plot for restaurants look similar, there are lower average scores, especially in older restaurants - scores dip before 96 around 1994-5.
 
 #Step 3 -> variation by city
+
+Check for NAs
+```{r}
+which(is.na(data_restaurant$CITY)) #stack overflow assist to returning the number of NA values; 0 NAs
+
+
+```
+
 ```{r}
 data_restaurant |>
   group_by(CITY) |>
@@ -194,9 +239,11 @@ data_restaurant |>
   ungroup()
   
 ```
-There is a similar range of scores, though now that we've filtered for restaurants only, the averages are a bit lower. 
+
+There is a similar range of scores, though now that we've filtered for restaurants only, the averages are a bit lower.
 
 Interim - Curious about the relationship between city and year opened.
+
 ```{r}
 
 data_restaurant |>
@@ -210,9 +257,16 @@ data_restaurant |>
 
 
 ```
+
 Maybe the sample sizes are super small and that's why there's so much variation.
 
 #Step 4 - variation by inspector
+
+Check for NAs
+```{r}
+which(is.na(data_restaurant$INSPECTOR)) #stack overflow assist to returning the number of NA values; 0 NAs
+```
+
 ```{r}
 
 data_restaurant |>
@@ -223,7 +277,8 @@ data_restaurant |>
 
 There is a lot more variation by inspector when the dataset is limited to restaurants. For example, the mean score of restaurants inspected by Thomas Jumalon was 88.00 compared to 97.81 in restaurants inspected by Zachary Carter.
 
-#Step 5 -> sample sizes 
+#Step 5 -> sample sizes
+
 ```{r}
 data_yo_r = data_restaurant |>
   mutate(name_yo = year(open_date)) |>
