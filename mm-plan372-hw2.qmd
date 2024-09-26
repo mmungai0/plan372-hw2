@@ -298,3 +298,6 @@ data_sample_r
 ```
 
 There are quite a lot of samples whose sizes are less than 30, which helps explain some of the more extreme results in the data.
+
+#Link to GitHub Repository 
+https://github.com/mmungai0/plan372-hw2 
