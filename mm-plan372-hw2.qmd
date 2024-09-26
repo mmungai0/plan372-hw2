@@ -8,11 +8,10 @@ editor: visual
 Collect packages
 
 ```{r}
-library(tidyverse) #i always have to click 'tidyverse' in packages to get it
 library(lubridate)
 library(ggplot2)
 library(ggthemes)
-
+library(tidyverse) #i always have to click 'tidyverse' in packages to get it
 ```
 
 Read CSV files
@@ -33,11 +32,12 @@ data |>
 #No missing data
 
 ```
-
+Visualizing the data using ggplot
 ```{r}
 ggplot(data, aes(x=SCORE)) + geom_histogram(color='white', fill='pink')
 
 ```
+There is a slight right skew but most data is concentrated between about 80 and 100. 
 
 #2 Some restaurants have been in business much longer than others. Is there any trend in terms of how highly older vs. newer restaurants score on their inspections?
 
@@ -68,9 +68,9 @@ There doesn't seem to be much of a trend between older and newer restaurants, on
 
 #3. Wake County is the most populous county in North Carolina, and there are many cities in it. Do the inspection scores vary by city? 
 
-Note that the city column contains some differently spelled city names; make sure to clean those up so that there is only one estimated value per city. 
+#Note that the city column contains some differently spelled city names; make sure to clean those up so that there is only one estimated value per city. 
 
-The recode function that we used for creating a weekend/weekday variable in the SFpark exercise will be useful here, and you may also be interested in the str_to_upper function.
+#The recode function that we used for creating a weekend/weekday variable in the SFpark exercise will be useful here, and you may also be interested in the str_to_upper function.
 
 Step 1: find and recode unique city names 
 ```{r}
@@ -78,7 +78,7 @@ unique(data$CITY) #ran this again after recoding
 
 data$CITY = recode(data$CITY, "Raleigh"="RALEIGH", "Zebulon"="ZEBULON", "Wake Forest"="WAKE FOREST", "NORTH CAROLINA" = "UNKNOWN", "Fuquay-Varina" = "FUQUAY VARINA", "Fuquay Varina" = "FUQUAY VARINA", "FUQUAY-VARINA" = "FUQUAY VARINA", "Garner" = "GARNER", "RTP" = "RESEARCH TRIANGLE PARK", "Cary" = "CARY", "Apex" = "APEX", "Morrisville" = "MORRISVILLE", "Holly Springs" = "HOLLY SPRINGS", "HOLLY SPRING" = "HOLLY SPRINGS")
 ```
-Step 2: Group data by city 
+Step 2: Group data by city and summarize to find the average inspection scores
 ```{r}
 
 data_city = data |>
@@ -91,8 +91,9 @@ It varies a little by city but not much. It also varied by about the same amount
 
 #4. Wake County employs a whole team of inspectors. It is possible that some inspectors may be more thorough than others. Do inspection scores vary by inspector?
 
+Create a table with the mean inspection score per restaurant
 ```{r}
-unique(data$INSPECTOR, data$HSISID)
+unique(data$INSPECTOR) #just to get a sense of how many inspectors there are
 
 data_inspect = data |>
   group_by(INSPECTOR) |>
@@ -104,42 +105,141 @@ It varies but not by much. Once again the variance is between a mean score of 94
 
 #5. It is possible that some extreme results from the previous questions are due to small sample sizes in a particular city, for a particular inspector, or in a particular time period. Look at the sample sizes in each of your groups. Do you think this is an explanation for the results you came to above? 
 
-I don't know if my results can be considered extreme, but my sample sizes for each of the groups are small. When I grouped by the year the restaurant opened, there were 34 observations, which became 39 when I grouped by inspector, but became just 20 when I grouped by city. I'm not sure the sample size alone explains any changes, or lack thereof, of my results, which happened to be pretty constant from question to question.
-
-!question -> why are my results not changing
-
-#The data file contains records for many types of food-service facility (e.g. restaurants, food trucks, etc.). Are the scores for restaurants higher than other types of facility?
-
-Creating
+Create a table combining the sample sizes for distinct citites, inspectors, and time periods (year restaurants opened) 
 ```{r}
-data_city_inspect = data |>
-  group_by(CITY, INSPECTOR) |>
+data_yo = data |>
+  mutate(name_yo = year(open_date)) |>
+  group_by(name_yo) |>
+  summarize(count=n()) |>
+  ungroup() 
+data_city = data|>
+  group_by(CITY) |>
+  summarize(count=n()) |>
+  ungroup()
+data_inspector = data|>
+  group_by(INSPECTOR) |>
+  summarize(count = n()) |>
+  ungroup()
+data_sample = bind_rows(data_yo, data_city, data_inspector) 
+data_sample
+```
+
+Samples for particular cities, inspectors, and restaurants were sometimes very small, ranging from a sample size of 1 to 28.
+
+I don't know if my results can be considered extreme, but my sample sizes for each of the groups are small. When I grouped and summarized by the year the restaurant opened, there were 34 observations, which became 39 when I grouped and summarized by inspector, but became just 20 when I grouped and summarized by city. I'm not sure the sample size alone explains any changes, or lack thereof, of my results, which happened to be pretty constant from question to question.
+
+#6. The data file contains records for many types of food-service facility (e.g. restaurants, food trucks, etc.). Are the scores for restaurants higher than other types of facility?
+
+Check for NAs within the facility type groups 
+```{r}
+
+data |> 
+  group_by(FACILITYTYPE) |>
+  summarize(na_count=sum(is.na(count)))
+
+```
+None besides the NA column.
+
+Create a new table with the mean scores of of food service facilities
+```{r}
+data_facility = data |>
+  group_by(FACILITYTYPE) |>
   summarise(mean_score = mean(SCORE, na.rm=T)) |>
   ungroup()
-
-ggplot(data_city_inspect, aes(x=INSPECTOR, y=mean_score)) + geom_bar(position="dodge", stat="identity")
-
+data_facility
 ```
 
-
-```{r}
-ggplot(data_inspect, aes(x=CITY))
-
-
-```
-
+Make a bar graph of results (to help visualize)
 ```{r}
 
+ggplot(data_facility, aes(x=FACILITYTYPE, y=mean_score)) + geom_col() + theme(axis.text.x = element_text(angle = 90)) #help from stack exchange 
 
 ```
+The scores for restaurants are not higher than for other facilities. For example, the mean scores of push carts and public school lunchrooms are higher. In fact, "restaurant" has the lowest average score than all other facilities. 
 
+#7. Since restaurants are where the general public is most likely to interact with the food-service system, Wake County Public Health is particularly interested in sanitation in restaurants. Repeat the analyses above (1-5) for restaurants specifically. 
+
+#Step 1 -> histogram
 ```{r}
 
+data_restaurant = data |>
+  filter(FACILITYTYPE == "Restaurant")
+
+ggplot(data_restaurant, aes(x=SCORE)) + geom_histogram(color='white', fill='pink')
 
 ```
 
-
+Histogram looks similar to the histogram for all facility types.
+#Step 2 -> old vs new restaurants 
 ```{r}
 
+data_restaurant |>
+  mutate(year_opened = year(
+                        ymd_hms(RESTAURANTOPENDATE)
+                        )) |>
+  group_by(year_opened)|>
+  summarize(mean_score = mean(SCORE, na.rm=T)) |>
+  ungroup() |>
+  ggplot(aes(x=year_opened, y=mean_score)) + geom_line()
+
 
 ```
+While the plot for restaurants look similar, there are lower average scores, especially in older restaurants - scores dip before 96 around 1994-5.
+
+#Step 3 -> variation by city
+```{r}
+data_restaurant |>
+  group_by(CITY) |>
+  summarize(mean_score = mean(SCORE, na.rm=T)) |>
+  ungroup()
+  
+```
+There is a similar range of scores, though now that we've filtered for restaurants only, the averages are a bit lower. 
+
+Interim - Curious about the relationship between city and year opened.
+```{r}
+
+data_restaurant |>
+  mutate(year_opened = year(
+                        ymd_hms(RESTAURANTOPENDATE)
+                        )) |>
+  group_by(year_opened, CITY)|>
+  summarize(mean_score = mean(SCORE, na.rm=T)) |>
+  ungroup() |>
+  ggplot(aes(x=year_opened, y=mean_score, color=CITY)) + geom_line()
+
+
+```
+Maybe the sample sizes are super small and that's why there's so much variation.
+
+#Step 4 - variation by inspector
+```{r}
+
+data_restaurant |>
+  group_by(INSPECTOR) |>
+  summarize(mean_score = mean(SCORE)) |>
+  ungroup()
+```
+
+There is a lot more variation by inspector when the dataset is limited to restaurants. For example, the mean score of restaurants inspected by Thomas Jumalon was 88.00 compared to 97.81 in restaurants inspected by Zachary Carter.
+
+#Step 5 -> sample sizes 
+```{r}
+data_yo_r = data_restaurant |>
+  mutate(name_yo = year(open_date)) |>
+  group_by(name_yo) |>
+  summarize(count=n()) |>
+  ungroup() 
+data_city_r = data_restaurant|>
+  group_by(CITY) |>
+  summarize(count=n()) |>
+  ungroup()
+data_inspector_r = data_restaurant|>
+  group_by(INSPECTOR) |>
+  summarize(count = n()) |>
+  ungroup()
+data_sample_r = bind_rows(data_yo_r, data_city_r, data_inspector_r) 
+data_sample_r
+```
+
+There are quite a lot of samples whose sizes are less than 30, which helps explain some of the more extreme results in the data.
